@@ -1,0 +1,5 @@
+.vscode/
+build/
+cxxTest/
+*.user
+*.pyc

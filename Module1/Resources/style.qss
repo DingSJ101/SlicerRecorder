@@ -1,0 +1,87 @@
+
+#qSlicerModule1ModuleWidget
+{
+    background-color: rgb(184, 115, 19);
+}
+QWidget{
+    background-color: rgb(18, 33, 77);
+}
+QLabel
+{
+    color: rgb(255, 255, 255);
+    font:10pt ;
+    padding-left: 3px;
+    padding-right: 3px;
+    width:20px;
+}
+QLineEdit
+{
+    color:white;
+    padding-left: 6px;
+    padding-right: 6px;
+    border: 1px solid rgb(34, 49, 96);
+    border-radius : 6px;
+    border-color: rgb(101, 123, 191);
+    background-color: rgb(28, 44, 91);
+}
+QPushButton
+{
+    font:white;
+    width:14px;
+    background-color:#2f78ff;
+}
+QTextBrowser
+{
+    border:1px solid transparent;
+    border-radius:2px;
+    color: white;
+    background-color: rgb(18, 33, 77);
+    font-size: 12px;
+    font-weight: 400;
+    selection-background-color: #8c8c8c;
+    selection-color:#e6e6e6;
+    padding-left:6px;
+    padding-right:6px;
+}
+
+QTextBrowser QScrollBar:vertical
+{
+    background-color: rgb(68, 85, 135);
+    margin: 20px,20px,0,0;
+}
+/* 滑块上下区域样式 */
+QTextBrowser QScrollBar::sub-page:vertical ,QScrollBar::add-page:vertical {
+    background: rgb(53, 208, 133);
+    /* border: 2px solid rgb(223, 104, 104); */
+}
+QTextBrowser QScrollBar::handle:vertical
+{
+    background-color: #2f78ff;
+    min-height: 30px;
+    width: 6px;
+}
+/* BUG : sub-line无效，add-line只能改颜色 */
+QTextBrowser QScrollBar::sub-line:vertical{
+    background-color:rgb(231, 235, 26);
+    border:1px solid rgb(89, 117, 11);
+    height:30px;
+    subcontrol-position:top;
+    subcontrol-origin:margin;
+}
+QTextBrowser QScrollBar::add-line:vertical{
+    subcontrol-position:bottom;
+    subcontrol-origin:margin;
+    background-color: #2f78ff;
+    border:1px solid rgb(255, 135, 8);
+    height:0px;
+}
+QTextBrowser QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical
+{
+    background: white;
+    width: 20px;
+    height: 20px;
+}
+#EmptyWidget
+{
+    background-color:transparent;
+}
