@@ -15,7 +15,7 @@ void recordingThread::startRecording(QString word)
 }
 void recordingThread::stopRecording()
 {
-    emit sendNewAction("[in] recordingThread::stopRecording()");
+    emit sendNewAction(QString("[in] recordingThread::stopRecording()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
     PostThreadMessage(GetThreadId(hThread), WM_QUIT, 0, 0);
     emit sendNewAction("[out] recordingThread::stopRecording()");
 }
@@ -145,6 +145,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 DWORD WINAPI KeyboardMessageLoop(LPVOID lpParam)
 {
+    emit keyboardThread->sendNewAction(QString("[in] KeyboardMessageLoop()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
     HHOOK keyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, NULL, 0);
     // 消息循环
     MSG msg;
@@ -155,14 +156,15 @@ DWORD WINAPI KeyboardMessageLoop(LPVOID lpParam)
             break;
         }
         // TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        DispatchMessage(&msg);  //钩子函数的执行与消息循环在同一个线程中
     }
     UnhookWindowsHookEx(keyboardHook);
+    emit keyboardThread->sendNewAction("[out] KeyboardMessageLoop()");
     return 0;
 }
 
 void recordingThread::run(){
-    emit sendNewAction("[in] recordingThread::run()");
+    emit sendNewAction(QString("[in] recordingThread::run()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
     
     hThread = CreateThread(NULL, 0, KeyboardMessageLoop, NULL, 0, NULL);
     emit sendNewAction("    [call] CreateThread KeyboardMessageLoop");
@@ -171,5 +173,6 @@ void recordingThread::run(){
     // 关闭句柄
     CloseHandle(hThread);
     emit sendNewAction("[out] recordingThread::run()");
+    
 }
 

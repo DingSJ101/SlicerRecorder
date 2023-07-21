@@ -4,14 +4,17 @@
 myTask::myTask(QObject* parent)
 {
     qDebug() <<"myTask:myTask()"<< this->thread()->currentThreadId();
+    myTask_ptr = this;
 }
 
+myTask* myTask_ptr = nullptr;
 recordingThread* keyboardThread = nullptr;
 
 void myTask::initialize()
 {
     qDebug()<<"myTask::initialize()"<<this->thread()->currentThreadId();
-    emit echoInfoImp("[in] myTask::initialize()");
+    emit echoInfoImp(QString("[in] myTask::initialize()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
+
     if (keyboardTask == nullptr)
     {
         keyboardTask = new recordingThread();
@@ -75,7 +78,7 @@ void myTask::addRecord(QString info)
 void myTask::finish()
 {
     // qDebug()<<"myTask::finish()";
-    emit echoInfoImp("[in] myTask::finish()");
+    emit echoInfoImp(QString("[in] myTask::finish()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
     if (keyboardTask->isFinished())    emit echoInfoImp("keyboardTask is Finished");
     if (keyboardTask->isRunning())    emit echoInfoImp("keyboardTask is Finished");
     emit stopThread();
@@ -92,70 +95,119 @@ void myTask::finish()
     emit echoInfoImp("[out] myTask::finish()");
 }
 
-void myTask::simplify()
-{
-    qDebug()<<"myTask::simplify()";
-    emit echoInfoImp("[in] myTask::simplify()");
-    fp = fopen(filename,"r");
-    emit echoInfoImp("  [open] fp = fopen(filename,\"r\")");
-    FILE *newfp = fopen(newfilename,"w");
-    emit echoInfoImp("  [open] newfp = fopen(newfilename,\"w\")");
+// void myTask::simplify()
+// {
+//     emit echoInfoImp(QString("[in] myTask::simplify()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
+//     fp = fopen(filename,"r");
+//     emit echoInfoImp("  [open] fp = fopen(filename,\"r\")");
+//     FILE *newfp = fopen(newfilename,"w");
+//     emit echoInfoImp("  [open] newfp = fopen(newfilename,\"w\")");
 
-    // read each line of the file
+//     // read each line of the file
+//     char line[1024];
+//     // each line is formatted with time:action:info
+//     qint64 time;
+//     char action[10];
+//     char info[10];
+//     while(fgets(line,1024,fp)){
+//         qint64 new_time;
+//         char new_action[10];
+//         char new_info[10];
+
+//         sscanf_s(line,"%lld:%[^:]:%s",&new_time,new_action,10,new_info,10);
+//         // if new_action and new_info is the same as action and info, then time = new_time
+//         if ( 
+//                 strcmp(info,new_info) != 0 
+//                 // && strcmp("UP",new_action) != 0 
+//                 || (strcmp(new_action,"UP")==0 ||strcmp(action,"UP")==0)
+//             )
+//         {
+//             // fwrite(line,1,strlen(line),newfp);
+//             fprintf(newfp,"%s",line);
+//             time = new_time;
+//             strcpy_s(action,10,new_action);
+//             strcpy_s(info,10,new_info);
+//         }
+//         else
+//         {
+//             qDebug()<<line;
+//             continue;
+//         }
+//     }
+//     fclose(fp);
+//     fp=nullptr;
+//     fclose(newfp);
+//     newfp=nullptr;
+//     emit echoInfoImp("  [close] fp = nullptr");
+//     emit echoInfoImp("  [close] newfp = nullptr");
+//     emit echoInfoImp("[out] myTask::simplify()");
+// }
+
+void myTask::reproduce(){
+    emit echoInfoImp(QString("[in] myTask::reproduce()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
+    // Pass the filename as a parameter to the thread
+    HANDLE hThread = CreateThread(
+        NULL,                   // default security attributes
+        0,                      // use default stack size
+        reproduceThread,             // thread function name
+        (LPVOID)filename,       // Pass the filename as a parameter to the thread
+        0,                      // use default creation flags
+        NULL               // returns the thread identifier
+    );
+    if (hThread == NULL)
+    {
+        emit echoInfoImp("Fail to create thread");
+        return;
+    }
+    else
+    {
+        emit echoInfoImp("Start reproducing");
+    }
+    emit echoInfoImp("[out] myTask::reproduce()");
+}
+// TODO : 对于重复按键，其行为为第一次按键后，延迟500ms触发第二次按键，之后30ms触发一次
+// 如果简化了这部分的重复按键，需要在之后还原
+DWORD WINAPI reproduceThread(LPVOID lpParam)
+{
+    emit myTask_ptr->addAction(QString("[in] reproduceThread()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
+    const char* filename = (const char*)lpParam;
+    const char* newfilename = "D:\\text_new.txt";
+
+    FILE *fp = fopen(filename,"r");
+    FILE *newfp = fopen(newfilename,"w");
+
     char line[1024];
-    // each line is formatted with time:action:info
     qint64 time;
     char action[10];
     char info[10];
+    int cnt = 0;
+    int tol = 0;
+    Sleep(1000); // TODO : 将窗口置顶、并移除鼠标焦点
     while(fgets(line,1024,fp)){
         qint64 new_time;
         char new_action[10];
         char new_info[10];
-
         sscanf_s(line,"%lld:%[^:]:%s",&new_time,new_action,10,new_info,10);
-        // if new_action and new_info is the same as action and info, then time = new_time
         if ( 
                 strcmp(info,new_info) != 0 
-                // && strcmp("UP",new_action) != 0 
                 || (strcmp(new_action,"UP")==0 ||strcmp(action,"UP")==0)
             )
         {
-            // fwrite(line,1,strlen(line),newfp);
             fprintf(newfp,"%s",line);
             time = new_time;
             strcpy_s(action,10,new_action);
             strcpy_s(info,10,new_info);
+            tol++;
         }
         else
         {
-            qDebug()<<line;
-            continue;
+            cnt++;
         }
     }
+    emit myTask_ptr->addAction(QString("del_cnt = ")+QString::number(cnt)+QString(" tol = ")+QString::number(tol));
     fclose(fp);
-    fp=nullptr;
     fclose(newfp);
-    newfp=nullptr;
-    emit echoInfoImp("  [close] fp = nullptr");
-    emit echoInfoImp("  [close] newfp = nullptr");
-    emit echoInfoImp("[out] myTask::simplify()");
-}
-
-void myTask::reproduce(){
-    emit echoInfoImp("[in] myTask::reproduce()");
-    if (fp == nullptr) {
-        emit echoInfoImp("  [call] myTask::simplify()");
-        simplify();
-    }
-    // read command in newfilename and reproduce it
     fp = fopen(newfilename,"r");
-    emit echoInfoImp("  [open] fp = fopen(newfilename,\"r\")");
-    
-    char line[1024];
-    // each line is formatted with time:action:info
-    qint64 time;
-    char action[10];
-    char info[10];
     qint64 delta_time = 0;
     DWORD vkey = 0;
     int key_action = 0 ;
@@ -175,17 +227,19 @@ void myTask::reproduce(){
         }
         else
         {
-            qDebug()<<"unknown action:"<<action;
+            qDebug()<<"unknown :"<<line;
         }
-        while(QDateTime::currentMSecsSinceEpoch() - time < delta_time)
+        // int cnt = 0;
+        while(QDateTime::currentMSecsSinceEpoch() <= time+ delta_time)
         {
-            msleep(1);
+            // cnt++;
+            Sleep(10);
         }
         keybd_event(vkey,0,key_action,0);
+        // qDebug()<<vkey<<cnt;
         // qDebug()<<delta_time<<time<<QDateTime::currentMSecsSinceEpoch()<<QDateTime::currentMSecsSinceEpoch()-time;
     }
     fclose(fp);
     fp=nullptr;
-    emit echoInfoImp("  [close] fp = nullptr");
-    emit echoInfoImp("[out] myTask::reproduce()");
+    return 0;
 }

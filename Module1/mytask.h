@@ -18,7 +18,7 @@ public:
     explicit myTask(QObject* parent = nullptr);
 public:
     void reproduce();
-    void simplify();
+    // void simplify();
 public slots:
     Q_INVOKABLE void initialize(); // 初始化文件指针
     // 获取QString内容，并写入文件
@@ -47,3 +47,6 @@ public:
 };
 
 #endif // MYTASK_H
+
+DWORD WINAPI reproduceThread(LPVOID lpParam);
+extern myTask* myTask_ptr;

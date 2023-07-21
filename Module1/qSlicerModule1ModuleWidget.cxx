@@ -57,8 +57,6 @@ qSlicerModule1ModuleWidgetPrivate::qSlicerModule1ModuleWidgetPrivate()
 qSlicerModule1ModuleWidget::qSlicerModule1ModuleWidget(QWidget* _parent)
   : Superclass( _parent )
   , d_ptr( new qSlicerModule1ModuleWidgetPrivate )
-  // , TrackingTimer(new QTimer(this))
-  //   , ConnectTimer(new QTimer(this))
 {
 }
 
@@ -93,7 +91,7 @@ void qSlicerModule1ModuleWidget::setup()
   // //---------------------setStyleSheet---------------------
 
   
-  echoInfo("[in] qSlicerModuleWidget::setup()");
+  echoInfo(QString("[in] qSlicerModuleWidget::setup()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
   qDebug()<<"qSlicerModuleWidget::setup()"<<this->thread()->currentThreadId();
   m_task =new myTask;
   qDebug()<<"myTask:"<<m_task->thread()->currentThreadId();
@@ -126,11 +124,11 @@ void qSlicerModule1ModuleWidget::on_pushButton_clicked()
    QString word = d->lineEdit->text();
    qDebug() <<word;
    myProcess->start(word);
-
 }
+
 void qSlicerModule1ModuleWidget::startRecording()
 {
-  echoInfo("[in] qSlicerModuleWidget::startRecoding()");
+  echoInfo(QString("[in] qSlicerModuleWidget::startRecoding()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
   Q_D(qSlicerModule1ModuleWidget);
   if (m_task == nullptr)
   {
@@ -142,7 +140,7 @@ void qSlicerModule1ModuleWidget::startRecording()
 
 void qSlicerModule1ModuleWidget::finishRecording()
 {
-    echoInfo("[in] qSlicerModuleWidget::finishRecording()");
+    echoInfo(QString("[in] qSlicerModuleWidget::finishRecording()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
     echoInfo("  [call] m_task->finish();");
     m_task->finish();
     echoInfo("[out] qSlicerModuleWidget::finishRecording()");
@@ -150,7 +148,7 @@ void qSlicerModule1ModuleWidget::finishRecording()
 
 void qSlicerModule1ModuleWidget::reproduceRecording()
 {
-    echoInfo("[in] qSlicerModuleWidget::reproduceRecording()");
+    echoInfo(QString("[in] qSlicerModuleWidget::reproduceRecording()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
     echoInfo("  [call] m_task->reproduce();");
     m_task->reproduce();
     echoInfo("[out] qSlicerModuleWidget::reproduceRecording()");
