@@ -10,6 +10,8 @@ myTask::myTask(QObject* parent)
 myTask* myTask_ptr = nullptr;
 recordingThread* keyboardThread = nullptr;
 recordingThread* mouseThread = nullptr;
+qint64 last_time = 0;
+bool startReproduce = false;
 
 void myTask::initialize()
 {
@@ -78,6 +80,10 @@ void myTask::initialize()
     fp_mouse = fopen(mouse_filename,"w");
     emit echoInfoImp("  [open] fp_mouse = fopen(mouse_filename,\"w\")");
     emit echoInfoImp("[out] myTask::initialize()");
+    qint64  currentTime = QDateTime::currentMSecsSinceEpoch();
+    // TODO : 同步启动reproduce部分，目前keyboard需要预处理数据
+    addRecord(QString::number(currentTime)+":START:0",0);
+    addRecord(QString::number(currentTime)+":0:0:0",1);
 }
 
 void myTask::addAction(QString info)
@@ -173,28 +179,36 @@ void myTask::finish()
 void myTask::reproduce(){
     emit echoInfoImp(QString("[in] myTask::reproduce()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
     // Pass the filename as a parameter to the thread
-    HANDLE hThread = CreateThread(
+    HANDLE hKeyboardThread = CreateThread(
         NULL,                   // default security attributes
         0,                      // use default stack size
-        reproduceThread,             // thread function name
+        keyboaredReproduceThread,             // thread function name
         (LPVOID)keyboard_filename,       // Pass the filename as a parameter to the thread
         0,                      // use default creation flags
         NULL               // returns the thread identifier
     );
-    if (hThread == NULL)
-    {
-        emit echoInfoImp("Fail to create thread");
-        return;
-    }
-    else
-    {
-        emit echoInfoImp("Start reproducing");
-    }
+    HANDLE hMouseThread = CreateThread(
+        NULL,                   // default security attributes
+        0,                      // use default stack size
+        mouseReproduceThread,             // thread function name
+        (LPVOID)mouse_filename,       // Pass the filename as a parameter to the thread
+        0,                      // use default creation flags
+        NULL               // returns the thread identifier
+    );
+    // if (hKeyboardThread == NULL)
+    // {
+    //     emit echoInfoImp("Fail to create thread");
+    //     return;
+    // }
+    // else
+    // {
+    //     emit echoInfoImp("Start reproducing");
+    // }
     emit echoInfoImp("[out] myTask::reproduce()");
 }
 // TODO : 对于重复按键，其行为为第一次按键后，延迟500ms触发第二次按键，之后30ms触发一次
 // 如果简化了这部分的重复按键，需要在之后还原
-DWORD WINAPI reproduceThread(LPVOID lpParam)
+DWORD WINAPI keyboaredReproduceThread(LPVOID lpParam)
 {
     emit myTask_ptr->addAction(QString("[in] reproduceThread()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
     const char* filename = (const char*)lpParam;
@@ -209,7 +223,6 @@ DWORD WINAPI reproduceThread(LPVOID lpParam)
     char info[10];
     int cnt = 0;
     int tol = 0;
-    Sleep(1000); // TODO : 将窗口置顶、并移除鼠标焦点
     while(fgets(line,1024,fp)){
         qint64 new_time;
         char new_action[10];
@@ -231,6 +244,7 @@ DWORD WINAPI reproduceThread(LPVOID lpParam)
             cnt++;
         }
     }
+    Sleep(1000); // TODO : 将窗口置顶、并移除鼠标焦点
     emit myTask_ptr->addAction(QString("del_cnt = ")+QString::number(cnt)+QString(" tol = ")+QString::number(tol));
     fclose(fp);
     fclose(newfp);
@@ -263,6 +277,80 @@ DWORD WINAPI reproduceThread(LPVOID lpParam)
             Sleep(10);
         }
         keybd_event(vkey,0,key_action,0);
+        // qDebug()<<vkey<<cnt;
+        // qDebug()<<delta_time<<time<<QDateTime::currentMSecsSinceEpoch()<<QDateTime::currentMSecsSinceEpoch()-time;
+    }
+    fclose(fp);
+    fp=nullptr;
+    return 0;
+}
+
+DWORD WINAPI mouseReproduceThread(LPVOID lpParam)
+{
+    emit myTask_ptr->addAction(QString("[in] mouseReproduceThread()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
+    const char* filename = (const char*)lpParam;
+    FILE *fp = fopen(filename,"r");
+
+    char line[1024];
+    qint64 time;
+    char action[10];
+    char param1[10];
+    char param2[10];
+    Sleep(1000); // TODO : 将窗口置顶、并移除鼠标焦点
+    qint64 delta_time = 0;
+    DWORD vkey = 0;
+    int key_action = 0 ;
+    while(fgets(line,1024,fp)){
+        sscanf_s(line,"%lld:%[^:]:%s:%s",&time,action,10,param1,10,param2,10);
+        if (delta_time == 0) {
+            delta_time = QDateTime::currentMSecsSinceEpoch()-time;
+        }
+        vkey = atoi(action);
+        int event,x=0,y=0,z=0;
+        switch (vkey)
+        {
+            case WM_MOUSEMOVE:
+                x = atoi(param1);
+                y = atoi(param2);
+                event = MOUSEEVENTF_MOVE;
+                break;
+            case WM_LBUTTONDOWN:
+                event = MOUSEEVENTF_LEFTDOWN;
+                break;
+            case WM_RBUTTONDOWN:
+                event = MOUSEEVENTF_RIGHTDOWN;
+                break;
+            case WM_MBUTTONDOWN:
+                event = MOUSEEVENTF_MIDDLEDOWN;
+                break;
+            case WM_LBUTTONUP:
+                event = MOUSEEVENTF_LEFTUP;
+                break; 
+            case WM_RBUTTONUP:
+                event = MOUSEEVENTF_RIGHTUP;
+                break;
+            case WM_MBUTTONUP:
+                event = MOUSEEVENTF_MIDDLEUP;
+                break;
+            case WM_XBUTTONUP:
+                event = MOUSEEVENTF_XUP;
+                break;
+            case WM_MOUSEWHEEL:
+                z = atoi(param1);
+                event = MOUSEEVENTF_WHEEL;
+                break;
+            case WM_MOUSEHWHEEL:
+                z = atoi(param1);
+                event = MOUSEEVENTF_HWHEEL;
+                break;
+        }
+        // int cnt = 0;
+        while(QDateTime::currentMSecsSinceEpoch() <= time+ delta_time)
+        {
+            // cnt++;
+            Sleep(10);
+        }
+        mouse_event(event,x,y,z,0);
         // qDebug()<<vkey<<cnt;
         // qDebug()<<delta_time<<time<<QDateTime::currentMSecsSinceEpoch()<<QDateTime::currentMSecsSinceEpoch()-time;
     }

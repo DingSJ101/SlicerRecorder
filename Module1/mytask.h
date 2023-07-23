@@ -52,5 +52,6 @@ public:
 
 #endif // MYTASK_H
 
-DWORD WINAPI reproduceThread(LPVOID lpParam);
+DWORD WINAPI keyboaredReproduceThread(LPVOID lpParam);
+DWORD WINAPI mouseReproduceThread(LPVOID lpParam);
 extern myTask* myTask_ptr;
