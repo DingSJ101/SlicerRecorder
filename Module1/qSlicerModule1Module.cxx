@@ -114,12 +114,12 @@ void qSlicerModule1Module::setup()
     QMainWindow* mw = app->mainWindow();
     mw->topLevelWidget()->setWindowTitle("123123123");
     mw->topLevelWidget()->findChildren<QWidget*>();
-    for(auto w : mw->topLevelWidget()->findChildren<QWidget*>()){
-        if(w->objectName()=="pythonConsole"){
-            qDebug()<<"find pythonConsole";
-            w->setVisible(false);
-        }
-    }
+    // for(auto w : mw->topLevelWidget()->findChildren<QWidget*>()){
+    //     if(w->objectName()=="pythonConsole"){
+    //         qDebug()<<"find pythonConsole";
+    //         w->setVisible(false);
+    //     }
+    // }
 
     
     // mywidget->setMRMLScene(app->mrmlScene());

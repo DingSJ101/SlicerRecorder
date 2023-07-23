@@ -6,6 +6,7 @@
 #include <QRunnable>
 #include <vtkRenderWindowInteractor.h>
 #include <Windows.h>
+#include <windowsx.h>
 #include <tchar.h>
 
 class recordingThread
@@ -19,6 +20,7 @@ public:
         return instance;
     }
     recordingThread();
+    recordingThread(int type);
     void startRecording(QString);
     
 public slots:
@@ -28,12 +30,15 @@ protected:
     void run() override;
 private:
     HANDLE hThread;
+    // 0:keyboard  1:mouse
+    int type; 
 signals:
     void sendNewAction(QString);
-    void sendNewRecord(QString);
+    void sendNewRecord(QString,int type);
 };
 
 #endif // RECORDINGTHREAD_H
 
 
 extern recordingThread* keyboardThread;
+extern recordingThread* mouseThread;

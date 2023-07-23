@@ -6,7 +6,9 @@ recordingThread::recordingThread()
 {
     qDebug() << "recordingThread::recordingThread()"<< this->thread()->currentThreadId();
     qDebug() << "recordingThread::recordingThread()"<< getpid();
-//    this->quit();
+}
+recordingThread::recordingThread(int type):type(type)
+{
 }
 void recordingThread::startRecording(QString word)
 {
@@ -29,19 +31,79 @@ void recordingThread::finishRecording()
 #define KEY_DOWN(VK_NONAME) ((GetAsyncKeyState(VK_NONAME) & 0x8000) ? 1:0)
 LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
-    if (nCode >= 0 && wParam == WM_MOUSEMOVE)
+    qint64  currentTime = QDateTime::currentMSecsSinceEpoch();
+    auto mouseStruct = reinterpret_cast<MSLLHOOKSTRUCT*>(lParam);
+    if(nCode <0) return CallNextHookEx(NULL, nCode, wParam, lParam);
+    if ( wParam == WM_MOUSEMOVE)
     {
-        POINT cursorPos;
-        GetCursorPos(&cursorPos);
-        qDebug()<< "Mouse moved: X=" << cursorPos.x << ", Y=" << cursorPos.y;
-//        std::ofstream logfile("mouse_log.txt", std::ios::app);
-//        if (logfile.is_open())
-//        {
-//            logfile << "Mouse moved: X=" << cursorPos.x << ", Y=" << cursorPos.y << std::endl;
-//            logfile.close();
-//        }
+        // emit mouseThread->sendNewRecord(QString::number(currentTime)+QString::number(lParam),1);
+        // int xPos = GET_X_LPARAM(lParam);
+        // int yPos = GET_Y_LPARAM(lParam);
+        int xPos = mouseStruct->pt.x;
+        int yPos = mouseStruct->pt.y;
+        // emit mouseThread->sendNewRecord(QString::number(currentTime)+":"+QString::number(wParam)+":"+QString::number(xPos)+QString(":")+QString::number(yPos),1);
+        // POINT cursorPos;
+        // GetCursorPos(&cursorPos);
+        // emit mouseThread->sendNewRecord(QString::number(currentTime)+":"+QString::number(cursorPos.x)+QString(":")+QString::number(cursorPos.y),1);
+    }
+    else {
+        QString action="";
+        QString param1="";
+        switch(wParam){
+            case WM_LBUTTONDOWN:
+            case WM_LBUTTONDBLCLK:
+                action = QString::number(WM_LBUTTONDOWN);
+                break;
+            case WM_RBUTTONDOWN:
+            case WM_RBUTTONDBLCLK:
+                action = QString::number(WM_RBUTTONDOWN);
+                break;
+            case WM_MBUTTONDOWN:
+            case WM_MBUTTONDBLCLK:
+                action = QString::number(WM_MBUTTONDOWN);
+                break;
+            case WM_XBUTTONDOWN:
+            case WM_XBUTTONDBLCLK://鼠标侧键
+                break;
+
+            case WM_LBUTTONUP:
+            case WM_RBUTTONUP:
+            case WM_MBUTTONUP:
+            case WM_XBUTTONUP:
+                action = QString::number(wParam);
+                break;
+            case WM_MOUSEWHEEL:
+            case WM_MOUSEHWHEEL:
+                action = QString::number(WM_MOUSEWHEEL);
+                param1 = QString::number(GET_WHEEL_DELTA_WPARAM(mouseStruct->mouseData));
+                break;
+        }
+        if (mouseThread)
+        {
+            emit mouseThread->sendNewRecord(QString::number(currentTime)+":"+action+":"+param1+":0",1);
+        }
     }
     return CallNextHookEx(NULL, nCode, wParam, lParam);
+}
+
+DWORD WINAPI MouseMessageLoop(LPVOID lpParam)
+{
+    emit keyboardThread->sendNewAction(QString("[in] MouseMessageLoop()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
+    HHOOK keyboardHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, NULL, 0);
+    // 消息循环
+    MSG msg;
+    while (GetMessage(&msg, NULL, 0, 0))
+    {
+        if (msg.message == WM_QUIT){
+            qDebug()<<"recordingThread::run() WM_QUIT";
+            break;
+        }
+        // TranslateMessage(&msg);
+        DispatchMessage(&msg);  //钩子函数的执行与消息循环在同一个线程中
+    }
+    UnhookWindowsHookEx(keyboardHook);
+    emit keyboardThread->sendNewAction("[out] MouseMessageLoop()");
+    return 0;
 }
 
 LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
@@ -138,7 +200,7 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     {
         // QString message = QString::number(currentTime)+":"+type+":"+info;
         // emit keyboardThread->sendNewAction(message);
-        emit keyboardThread->sendNewRecord(QString::number(currentTime)+":"+type+":"+action);
+        emit keyboardThread->sendNewRecord(QString::number(currentTime)+":"+type+":"+action,0);
     }
     return CallNextHookEx(NULL, nCode, wParam, lParam);
 }
@@ -165,9 +227,15 @@ DWORD WINAPI KeyboardMessageLoop(LPVOID lpParam)
 
 void recordingThread::run(){
     emit sendNewAction(QString("[in] recordingThread::run()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
+    if (type==0){
+        hThread = CreateThread(NULL, 0, KeyboardMessageLoop, NULL, 0, NULL);
+        emit sendNewAction("    [call] CreateThread KeyboardMessageLoop");
+    }
+    else{
+        hThread = CreateThread(NULL, 0, MouseMessageLoop, NULL, 0, NULL);
+        emit sendNewAction("    [call] CreateThread MouseMessageLoop");
+    }
     
-    hThread = CreateThread(NULL, 0, KeyboardMessageLoop, NULL, 0, NULL);
-    emit sendNewAction("    [call] CreateThread KeyboardMessageLoop");
     // 等待线程完成
     WaitForSingleObject(hThread, INFINITE);
     // 关闭句柄

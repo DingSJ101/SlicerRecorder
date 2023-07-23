@@ -9,6 +9,7 @@ myTask::myTask(QObject* parent)
 
 myTask* myTask_ptr = nullptr;
 recordingThread* keyboardThread = nullptr;
+recordingThread* mouseThread = nullptr;
 
 void myTask::initialize()
 {
@@ -17,7 +18,7 @@ void myTask::initialize()
 
     if (keyboardTask == nullptr)
     {
-        keyboardTask = new recordingThread();
+        keyboardTask = new recordingThread(0);
         keyboardThread = keyboardTask;
         
         emit echoInfoImp("  [new] keyboardTask = new recordingThread()");
@@ -38,14 +39,28 @@ void myTask::initialize()
     }
     if (mouseTask == nullptr)
     {
-        mouseTask = new recordingThread();
-        connect(mouseTask,&recordingThread::sendNewAction,this,&myTask::addRecord);
-        connect(this,&myTask::stopThread,mouseTask,&recordingThread::finishRecording);
+        mouseTask = new recordingThread(1);
+        mouseThread = mouseTask;
+        emit echoInfoImp("  [new] mouseTask = new recordingThread()");
+
+        connect(mouseTask,&recordingThread::sendNewAction,this,&myTask::addAction);
+        connect(mouseTask,&recordingThread::sendNewRecord,this,&myTask::addRecord);
+
+        connect(mouseTask,&QThread::started,[this]{emit echoInfoImp("mouseTask -> QThread::started");});
+        connect(mouseTask,&QThread::finished,[this]{emit echoInfoImp("mouseTask -> QThread::finish");});
+        connect(mouseTask,&QThread::destroyed,[this]{emit echoInfoImp("mouseTask -> QThread::destory");});
+
+        connect(this,&myTask::stopThread,mouseTask,&recordingThread::stopRecording);
+    }
+    else{
+        emit echoInfoImp("  [error] mouseTask exists");
+        return ;
     }
 
 
     //  QThread
-    keyboardTask->start();
+    // keyboardTask->start();
+    mouseTask->start();
 
     //  QThreadPool
 //    QThreadPool *ThreadPool = QThreadPool::globalInstance();
@@ -55,11 +70,13 @@ void myTask::initialize()
     //
 
     
-    if (keyboardTask->isFinished())    emit echoInfoImp("keyboardTask is Finished");
-    if (keyboardTask->isRunning())    emit echoInfoImp("keyboardTask is Running");
-    // fopen_s(&fp,filename,"w");
-    fp = fopen(filename,"w");
-    emit echoInfoImp("  [open] fp = fopen(filename,\"w\")");
+    // if (keyboardTask->isFinished())    emit echoInfoImp("keyboardTask is Finished");
+    // if (keyboardTask->isRunning())    emit echoInfoImp("keyboardTask is Running");
+    // fopen_s(&fp_keyboard,filename,"w");
+    fp_keyboard = fopen(keyboard_filename,"w");
+    emit echoInfoImp("  [open] fp_keyboard = fopen(keyboard_filename,\"w\")");
+    fp_mouse = fopen(mouse_filename,"w");
+    emit echoInfoImp("  [open] fp_mouse = fopen(mouse_filename,\"w\")");
     emit echoInfoImp("[out] myTask::initialize()");
 }
 
@@ -69,29 +86,39 @@ void myTask::addAction(QString info)
     emit echoInfoImp(info);
 }
 
-void myTask::addRecord(QString info)
+void myTask::addKeyboardRecord(QString info)
+{
+    fprintf(fp_keyboard,"%s\n",info.toStdString().c_str());
+}
+void myTask::addMouseRecord(QString info)
+{
+    fprintf(fp_mouse,"%s\n",info.toStdString().c_str());
+}
+void myTask::addRecord(QString info,int task_type)
 {
     qDebug()<<"myTask::addRecord("<<info<<")";
-    fprintf(fp,"%s\n",info.toStdString().c_str());
+    if (task_type == 0) addKeyboardRecord(info);
+    else if (task_type == 1) addMouseRecord(info);
 }
 
 void myTask::finish()
 {
     // qDebug()<<"myTask::finish()";
     emit echoInfoImp(QString("[in] myTask::finish()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
-    if (keyboardTask->isFinished())    emit echoInfoImp("keyboardTask is Finished");
-    if (keyboardTask->isRunning())    emit echoInfoImp("keyboardTask is Finished");
+    // if (keyboardTask->isFinished())    emit echoInfoImp("keyboardTask is Finished");
+    // if (keyboardTask->isRunning())    emit echoInfoImp("keyboardTask is Finished");
     emit stopThread();
     
-    // keyboardTask->quit();
-    // keyboardTask->deleteLater();
-    // emit echoInfoImp("keyboardTask->deleteLater()");
-    if (keyboardTask && keyboardTask->isFinished())    emit echoInfoImp("keyboardTask is Finished after stopThread()");
-    if (keyboardTask && keyboardTask->isRunning())    emit echoInfoImp("keyboardTask is Finished after stopThread()");
     
-    fclose(fp);
-    fp = nullptr;
-    emit echoInfoImp("  [close] fp = nullptr");
+    // if (keyboardTask && keyboardTask->isFinished())    emit echoInfoImp("keyboardTask is Finished after stopThread()");
+    // if (keyboardTask && keyboardTask->isRunning())    emit echoInfoImp("keyboardTask is Finished after stopThread()");
+    
+    fclose(fp_keyboard);
+    fp_keyboard = nullptr;
+    fclose(fp_mouse);
+    fp_mouse = nullptr;
+    emit echoInfoImp("  [close] fp_keyboard = nullptr");
+    emit echoInfoImp("  [close] fp_mouse = nullptr");
     emit echoInfoImp("[out] myTask::finish()");
 }
 
@@ -150,7 +177,7 @@ void myTask::reproduce(){
         NULL,                   // default security attributes
         0,                      // use default stack size
         reproduceThread,             // thread function name
-        (LPVOID)filename,       // Pass the filename as a parameter to the thread
+        (LPVOID)keyboard_filename,       // Pass the filename as a parameter to the thread
         0,                      // use default creation flags
         NULL               // returns the thread identifier
     );
