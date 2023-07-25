@@ -61,7 +61,7 @@ void myTask::initialize()
 
 
     //  QThread
-    // keyboardTask->start();
+    keyboardTask->start();
     mouseTask->start();
 
     //  QThreadPool
@@ -206,6 +206,8 @@ void myTask::reproduce(){
     // }
     emit echoInfoImp("[out] myTask::reproduce()");
 }
+
+qint64 delta_time = 0;
 // TODO : 对于重复按键，其行为为第一次按键后，延迟500ms触发第二次按键，之后30ms触发一次
 // 如果简化了这部分的重复按键，需要在之后还原
 DWORD WINAPI keyboaredReproduceThread(LPVOID lpParam)
@@ -244,12 +246,12 @@ DWORD WINAPI keyboaredReproduceThread(LPVOID lpParam)
             cnt++;
         }
     }
-    Sleep(1000); // TODO : 将窗口置顶、并移除鼠标焦点
+    // Sleep(1000); // TODO : 将窗口置顶、并移除鼠标焦点
     emit myTask_ptr->addAction(QString("del_cnt = ")+QString::number(cnt)+QString(" tol = ")+QString::number(tol));
     fclose(fp);
     fclose(newfp);
     fp = fopen(newfilename,"r");
-    qint64 delta_time = 0;
+    // qint64 delta_time = 0;
     DWORD vkey = 0;
     int key_action = 0 ;
     while(fgets(line,1024,fp)){
@@ -296,23 +298,39 @@ DWORD WINAPI mouseReproduceThread(LPVOID lpParam)
     char action[10];
     char param1[10];
     char param2[10];
-    Sleep(1000); // TODO : 将窗口置顶、并移除鼠标焦点
-    qint64 delta_time = 0;
+    // Sleep(1000); // TODO : 将窗口置顶、并移除鼠标焦点
+    // qint64 delta_time = 0;
     DWORD vkey = 0;
     int key_action = 0 ;
+    int o_x=-1,o_y=-1;
+    while(delta_time==0)Sleep(10);
     while(fgets(line,1024,fp)){
-        sscanf_s(line,"%lld:%[^:]:%s:%s",&time,action,10,param1,10,param2,10);
-        if (delta_time == 0) {
-            delta_time = QDateTime::currentMSecsSinceEpoch()-time;
-        }
+        // line is in format like 1690209042355:512:483:460
+        sscanf_s(line,"%lld:%[^:]:%[^:]:%s",&time,action,10,param1,10,param2,10);
+        // if (delta_time == 0) {
+        //     delta_time = QDateTime::currentMSecsSinceEpoch()-time;
+        // }
         vkey = atoi(action);
-        int event,x=0,y=0,z=0;
+        int event,x=0,y=0,z=0,_x,_y;
         switch (vkey)
         {
             case WM_MOUSEMOVE:
-                x = atoi(param1);
-                y = atoi(param2);
+                _x = atoi(param1);
+                _y = atoi(param2);
+                x = _x - o_x;
+                y = _y - o_y;
+                o_x = _x;
+                o_y = _y;
+                if(o_x==-1 || o_y==-1){
+                    // SetCursorPos(_x,_y);
+                    // emit myTask_ptr->addAction(QString::number(_x)+QString(",")+QString::number(_y));
+                }
                 event = MOUSEEVENTF_MOVE;
+                // event = MOUSE_MOVE_ABSOLUTE;
+                // event = MOUSEEVENTF_ABSOLUTE;
+                // x = _x;
+                // y = _y;
+                emit myTask_ptr->addAction(QString::number(x)+QString(",")+QString::number(y)+QString(" ")+QString::number(_x)+QString(",")+QString::number(_y));
                 break;
             case WM_LBUTTONDOWN:
                 event = MOUSEEVENTF_LEFTDOWN;
@@ -343,6 +361,7 @@ DWORD WINAPI mouseReproduceThread(LPVOID lpParam)
                 z = atoi(param1);
                 event = MOUSEEVENTF_HWHEEL;
                 break;
+                
         }
         // int cnt = 0;
         while(QDateTime::currentMSecsSinceEpoch() <= time+ delta_time)
@@ -350,9 +369,18 @@ DWORD WINAPI mouseReproduceThread(LPVOID lpParam)
             // cnt++;
             Sleep(10);
         }
-        mouse_event(event,x,y,z,0);
+        // mouse_event(event,x,y,z,0);
+
         // qDebug()<<vkey<<cnt;
         // qDebug()<<delta_time<<time<<QDateTime::currentMSecsSinceEpoch()<<QDateTime::currentMSecsSinceEpoch()-time;
+        if(event ==MOUSEEVENTF_MOVE) {SetCursorPos(_x,_y);continue;}
+        MOUSEINPUT mi = {x,y,z,event};
+        INPUT input = {INPUT_MOUSE,mi};
+        SendInput(1, &input, sizeof(input));
+        POINT pt ;
+        GetCursorPos(&pt);
+        myTask_ptr->addAction(QString("after move ")+QString::number(pt.x)+QString(",")+QString::number(pt.y));
+        
     }
     fclose(fp);
     fp=nullptr;

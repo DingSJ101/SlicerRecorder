@@ -41,7 +41,7 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
         // int yPos = GET_Y_LPARAM(lParam);
         int xPos = mouseStruct->pt.x;
         int yPos = mouseStruct->pt.y;
-        // emit mouseThread->sendNewRecord(QString::number(currentTime)+":"+QString::number(wParam)+":"+QString::number(xPos)+QString(":")+QString::number(yPos),1);
+        emit mouseThread->sendNewRecord(QString::number(currentTime)+":"+QString::number(wParam)+":"+QString::number(xPos)+QString(":")+QString::number(yPos),1);
         // POINT cursorPos;
         // GetCursorPos(&cursorPos);
         // emit mouseThread->sendNewRecord(QString::number(currentTime)+":"+QString::number(cursorPos.x)+QString(":")+QString::number(cursorPos.y),1);
@@ -88,21 +88,21 @@ LRESULT CALLBACK MouseProc(int nCode, WPARAM wParam, LPARAM lParam)
 
 DWORD WINAPI MouseMessageLoop(LPVOID lpParam)
 {
-    emit keyboardThread->sendNewAction(QString("[in] MouseMessageLoop()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
-    HHOOK keyboardHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, NULL, 0);
+    emit mouseThread->sendNewAction(QString("[in] MouseMessageLoop()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
+    HHOOK MouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseProc, NULL, 0);
     // 消息循环
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
     {
         if (msg.message == WM_QUIT){
-            qDebug()<<"recordingThread::run() WM_QUIT";
+            emit mouseThread->sendNewAction("recordingThread::run() WM_QUIT");
             break;
         }
         // TranslateMessage(&msg);
         DispatchMessage(&msg);  //钩子函数的执行与消息循环在同一个线程中
     }
-    UnhookWindowsHookEx(keyboardHook);
-    emit keyboardThread->sendNewAction("[out] MouseMessageLoop()");
+    UnhookWindowsHookEx(MouseHook);
+    emit mouseThread->sendNewAction("[out] MouseMessageLoop()");
     return 0;
 }
 
@@ -214,7 +214,7 @@ DWORD WINAPI KeyboardMessageLoop(LPVOID lpParam)
     while (GetMessage(&msg, NULL, 0, 0))
     {
         if (msg.message == WM_QUIT){
-            qDebug()<<"recordingThread::run() WM_QUIT";
+            emit keyboardThread->sendNewAction("recordingThread::run() WM_QUIT");
             break;
         }
         // TranslateMessage(&msg);
