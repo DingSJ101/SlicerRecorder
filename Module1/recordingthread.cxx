@@ -94,12 +94,12 @@ DWORD WINAPI MouseMessageLoop(LPVOID lpParam)
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
     {
-        if (msg.message == WM_QUIT){
-            emit mouseThread->sendNewAction("recordingThread::run() WM_QUIT");
-            break;
-        }
+        // if (msg.message == WM_QUIT){
+        //     emit mouseThread->sendNewAction("recordingThread::run() WM_QUIT");
+        //     break;
+        // }
         // TranslateMessage(&msg);
-        DispatchMessage(&msg);  //钩子函数的执行与消息循环在同一个线程中
+        // DispatchMessage(&msg);  //钩子函数的执行与消息循环在同一个线程中
     }
     UnhookWindowsHookEx(MouseHook);
     emit mouseThread->sendNewAction("[out] MouseMessageLoop()");
@@ -213,12 +213,12 @@ DWORD WINAPI KeyboardMessageLoop(LPVOID lpParam)
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
     {
-        if (msg.message == WM_QUIT){
-            emit keyboardThread->sendNewAction("recordingThread::run() WM_QUIT");
-            break;
-        }
+        // if (msg.message == WM_QUIT){
+        //     emit keyboardThread->sendNewAction("recordingThread::run() WM_QUIT");
+        //     break;
+        // }
         // TranslateMessage(&msg);
-        DispatchMessage(&msg);  //钩子函数的执行与消息循环在同一个线程中
+        // DispatchMessage(&msg);  //钩子函数的执行与消息循环在同一个线程中
     }
     UnhookWindowsHookEx(keyboardHook);
     emit keyboardThread->sendNewAction("[out] KeyboardMessageLoop()");
