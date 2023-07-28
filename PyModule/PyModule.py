@@ -113,10 +113,11 @@ class PyModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """ 
         # Load widget from .ui file (created by Qt Designer).
         # Additional widgets can be instantiated manually and added to self.layout.
+
         uiWidget = slicer.util.loadUI(self.resourcePath('UI/PyModule.ui'))
-        self.layout.addWidget(uiWidget)
-        self.ui = slicer.util.childWidgetVariables(uiWidget)
-        self.ui.setStyleSheet(self.resourcePath('style.qss'))
+        # self.layout.addWidget(uiWidget)
+        # self.ui = slicer.util.childWidgetVariables(uiWidget)
+        # self.ui.setStyleSheet(self.resourcePath('style.qss'))
 
         # Set scene in MRML widgets. Make sure that in Qt designer the top-level qMRMLWidget's
         # "mrmlSceneChanged(vtkMRMLScene*)" signal in is connected to each MRML widget's.
@@ -159,6 +160,7 @@ class PyModuleWidget(ScriptedLoadableModuleWidget, VTKObservationMixin):
         """
         # Make sure parameter node exists and observed
         self.initializeParameterNode()
+
 
     def exit(self):
         """

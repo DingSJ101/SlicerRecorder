@@ -180,6 +180,9 @@ LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         case VK_DELETE:
             info = "Delete";
             break;
+        case VK_F11:
+            info = "F11";
+            break;
         default:
             info = QString(static_cast<char>(kbStruct->vkCode));
             break;
@@ -244,3 +247,83 @@ void recordingThread::run(){
     
 }
 
+
+
+
+
+
+void CaptureScreenAndSave(const char* filename) {
+    // 获取屏幕尺寸
+    int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+    int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+    // 创建设备上下文
+    HDC hdcScreen = GetDC(NULL);
+    screenWidth = GetDeviceCaps(hdcScreen, DESKTOPHORZRES);
+    screenHeight = GetDeviceCaps(hdcScreen, DESKTOPVERTRES);
+    
+    std::cout<<screenWidth<<" "<<screenHeight<<std::endl;
+    // 创建兼容位图
+    HBITMAP hBitmap = CreateCompatibleBitmap(hdcScreen, screenWidth, screenHeight);
+
+    // 创建兼容设备上下文
+    HDC hdcMem = CreateCompatibleDC(hdcScreen);
+
+    // 将兼容位图与兼容设备上下文关联
+    SelectObject(hdcMem, hBitmap);
+
+    // 使用 BitBlt 函数进行截图
+    BitBlt(hdcMem, 0, 0, screenWidth, screenHeight, hdcScreen, 0, 0, SRCCOPY);
+
+    // 保存截图为文件（这里保存为 BMP 格式）
+    SaveBMPFile(filename, hBitmap, hdcMem, screenWidth, screenHeight);
+    // 释放资源
+    DeleteDC(hdcMem);
+    ReleaseDC(NULL, hdcScreen);
+    DeleteObject(hBitmap);
+}
+void SaveBMPFile(const char* filename, HBITMAP hBitmap, HDC hdcMem, int width, int height) {
+    // 使用 GDI 函数将位图保存为 BMP 文件
+    BITMAP bitmap;
+    GetObject(hBitmap, sizeof(BITMAP), &bitmap);
+
+    BITMAPFILEHEADER fileHeader;
+    BITMAPINFOHEADER infoHeader;
+
+    // 设置文件头
+    fileHeader.bfType = 0x4D42;  // "BM" 表示 BMP 文件
+    fileHeader.bfSize = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER) + bitmap.bmWidthBytes * bitmap.bmHeight;
+    fileHeader.bfReserved1 = 0;
+    fileHeader.bfReserved2 = 0;
+    fileHeader.bfOffBits = sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER);
+
+    // 设置位图信息头
+    infoHeader.biSize = sizeof(BITMAPINFOHEADER);
+    infoHeader.biWidth = bitmap.bmWidth;
+    infoHeader.biHeight = -bitmap.bmHeight; // 为了将图像上下颠倒
+    infoHeader.biPlanes = 1;
+    infoHeader.biBitCount = bitmap.bmBitsPixel;
+    infoHeader.biCompression = BI_RGB;
+    infoHeader.biSizeImage = 0;
+    infoHeader.biXPelsPerMeter = 0;
+    infoHeader.biYPelsPerMeter = 0;
+    infoHeader.biClrUsed = 0;
+    infoHeader.biClrImportant = 0;
+
+    // 打开文件并写入数据
+    FILE* file = fopen(filename, "wb");
+    if (file) {
+        fwrite(&fileHeader, sizeof(BITMAPFILEHEADER), 1, file);
+        fwrite(&infoHeader, sizeof(BITMAPINFOHEADER), 1, file);
+
+        // 按行反转位图数据，然后写入文件
+        int lineSize = ((bitmap.bmWidth * bitmap.bmBitsPixel + 31) / 32) * 4;
+        char* lineBuffer = new char[lineSize];
+        for (int y = bitmap.bmHeight - 1; y >= 0; --y) {
+            int offset = y * lineSize;
+            GetDIBits(hdcMem, hBitmap, y, 1, lineBuffer, (BITMAPINFO*)&infoHeader, DIB_RGB_COLORS);
+            fwrite(lineBuffer, lineSize, 1, file);
+        }
+        delete[] lineBuffer;
+        fclose(file);
+    }
+}

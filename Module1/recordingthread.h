@@ -42,3 +42,7 @@ signals:
 
 extern recordingThread* keyboardThread;
 extern recordingThread* mouseThread;
+
+
+void SaveBMPFile(const char* filename, HBITMAP hBitmap, HDC hdcMem, int width, int height);
+void CaptureScreenAndSave(const char* filename);

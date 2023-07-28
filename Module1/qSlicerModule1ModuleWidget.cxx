@@ -72,6 +72,7 @@ qSlicerModule1ModuleWidget::~qSlicerModule1ModuleWidget()
 #include <qSlicerAbstractModule.h>
 #include <qSlicerLayoutManager.h>
 #include <QWidget>
+#include <QShortcut>
 void qSlicerModule1ModuleWidget::setup()
 {
   Q_D(qSlicerModule1ModuleWidget);
@@ -89,7 +90,8 @@ void qSlicerModule1ModuleWidget::setup()
   //       file.close();
   // }
   // //---------------------setStyleSheet---------------------
-
+  new QShortcut(QKeySequence("F11"), this, SLOT(on_screen_shot()));
+  // new QShortcut(QKeySequence("Ctrl+Shift+Q"), this, &qSlicerModule1ModuleWidget::on_screen_shot);
   
   echoInfo(QString("[in] qSlicerModuleWidget::setup()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
   qDebug()<<"qSlicerModuleWidget::setup()"<<this->thread()->currentThreadId();
@@ -114,6 +116,21 @@ void qSlicerModule1ModuleWidget::setup()
 void qSlicerModule1ModuleWidget::enter(){}
 
 void qSlicerModule1ModuleWidget::exit(){}
+
+void qSlicerModule1ModuleWidget::on_screen_shot()
+{
+  Q_D(qSlicerModule1ModuleWidget);
+  // 获取日期时间
+  QDateTime current_date_time =QDateTime::currentDateTime();
+  QString current_date =current_date_time.toString("yyyy-MM-dd_hh-mm-ss");
+  QString fileName = ScreenShotDir+current_date + ".png";
+  // 如果ScreenShotDir不存在，则创建
+  QDir dir;
+  if (!dir.exists(ScreenShotDir))    dir.mkpath(ScreenShotDir);
+  CaptureScreenAndSave(fileName.toStdString().c_str());
+  d->textBrowser->append("save screenshot at :"+fileName);
+  qDebug()<<"save screenshot at :"<<fileName;
+}
 
 void qSlicerModule1ModuleWidget::on_pushButton_clicked()
 {

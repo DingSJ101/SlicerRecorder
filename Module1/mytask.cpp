@@ -267,6 +267,9 @@ DWORD WINAPI keyboaredReproduceThread(LPVOID lpParam)
         else if (strcmp(action,"UP")==0)
         {
             key_action = KEYEVENTF_KEYUP;
+            // if (vkey == VK_F11){
+            //     CaptureScreenAndSave("D:\\test.png");
+            // }
         }
         else
         {

@@ -25,6 +25,8 @@
 
 #include <recordingthread.h>
 #include <mytask.h>
+#include <QTime>
+#include <QDir>
 
 class qSlicerModule1ModuleWidgetPrivate;
 class vtkMRMLNode;
@@ -41,13 +43,14 @@ public:
   qSlicerModule1ModuleWidget(QWidget *parent=0);
   virtual ~qSlicerModule1ModuleWidget();
 
-//public slots:
+public slots:
     void on_pushButton_clicked();
     // get info  and append it to textBrowser
     void echoInfo(QString info);
     void startRecording();
     void finishRecording();
     void reproduceRecording();
+    void on_screen_shot();
 
 
 protected:
@@ -65,6 +68,7 @@ private:
   Q_DISABLE_COPY(qSlicerModule1ModuleWidget);
   QThread *m_thread;
   myTask* m_task = nullptr; 
+  QString ScreenShotDir="D:\\SlicerScreenShot\\";
 };
 
 #endif
