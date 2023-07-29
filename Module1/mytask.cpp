@@ -195,6 +195,16 @@ void myTask::reproduce(){
         0,                      // use default creation flags
         NULL               // returns the thread identifier
     );
+
+    FILE *fp = fopen(keyboard_filename,"r");
+    // 从文件中读入time
+    char line[1024];
+    qint64 time;
+    char action[10];
+    char info[10];
+    fscanf(fp,"%lld:%[^:]:%s",&time,action,info);
+    fclose(fp);
+    setDeltaTime(QDateTime::currentMSecsSinceEpoch()-time+1000);
     // if (hKeyboardThread == NULL)
     // {
     //     emit echoInfoImp("Fail to create thread");
@@ -207,7 +217,6 @@ void myTask::reproduce(){
     emit echoInfoImp("[out] myTask::reproduce()");
 }
 
-qint64 delta_time = 0;
 // TODO : 对于重复按键，其行为为第一次按键后，延迟500ms触发第二次按键，之后30ms触发一次
 // 如果简化了这部分的重复按键，需要在之后还原
 DWORD WINAPI keyboaredReproduceThread(LPVOID lpParam)
@@ -256,9 +265,10 @@ DWORD WINAPI keyboaredReproduceThread(LPVOID lpParam)
     int key_action = 0 ;
     while(fgets(line,1024,fp)){
         sscanf_s(line,"%lld:%[^:]:%s",&time,action,10,info,10);
-        if (delta_time == 0) {
-            delta_time = QDateTime::currentMSecsSinceEpoch()-time;
-        }
+        // if (delta_time == 0) {
+        //     delta_time = QDateTime::currentMSecsSinceEpoch()-time;
+        // }
+        qint64 local_delta_time = getDeltaTime();
         vkey = atoi(info);
         if (strcmp(action,"DOWN")==0)
         {
@@ -276,10 +286,11 @@ DWORD WINAPI keyboaredReproduceThread(LPVOID lpParam)
             qDebug()<<"unknown :"<<line;
         }
         // int cnt = 0;
-        while(QDateTime::currentMSecsSinceEpoch() <= time+ delta_time)
+        while(local_delta_time<0 || QDateTime::currentMSecsSinceEpoch() <= time+ local_delta_time)
         {
             // cnt++;
             Sleep(10);
+            local_delta_time = getDeltaTime();
         }
         keybd_event(vkey,0,key_action,0);
         // qDebug()<<vkey<<cnt;
@@ -306,8 +317,10 @@ DWORD WINAPI mouseReproduceThread(LPVOID lpParam)
     DWORD vkey = 0;
     int key_action = 0 ;
     int o_x=-1,o_y=-1;
-    while(delta_time==0)Sleep(10);
+    qint64 local_delta_time = getDeltaTime();
+    // while(local_delta_time<0)Sleep(10),local_delta_time = getDeltaTime();
     while(fgets(line,1024,fp)){
+        int local_delta_time = getDeltaTime();
         // line is in format like 1690209042355:512:483:460
         sscanf_s(line,"%lld:%[^:]:%[^:]:%s",&time,action,10,param1,10,param2,10);
         // if (delta_time == 0) {
@@ -367,10 +380,11 @@ DWORD WINAPI mouseReproduceThread(LPVOID lpParam)
                 
         }
         // int cnt = 0;
-        while(QDateTime::currentMSecsSinceEpoch() <= time+ delta_time)
+        while(local_delta_time<0 || QDateTime::currentMSecsSinceEpoch() <= time+ local_delta_time)
         {
             // cnt++;
             Sleep(10);
+            local_delta_time = getDeltaTime();
         }
         // mouse_event(event,x,y,z,0);
 

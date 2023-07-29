@@ -43,6 +43,11 @@ signals:
 extern recordingThread* keyboardThread;
 extern recordingThread* mouseThread;
 
+extern qint64 delta_time;
+// old_sys_time - cmd_time = old_delta_time
+// new_sys_time - cmd_time = new_delta_time
+qint64 getDeltaTime();
+void setDeltaTime(qint64 time);
 
 void SaveBMPFile(const char* filename, HBITMAP hBitmap, HDC hdcMem, int width, int height);
 void CaptureScreenAndSave(const char* filename);

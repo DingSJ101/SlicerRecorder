@@ -327,3 +327,14 @@ void SaveBMPFile(const char* filename, HBITMAP hBitmap, HDC hdcMem, int width, i
         fclose(file);
     }
 }
+
+qint64 delta_time = -1;
+void setDeltaTime(qint64 time)
+{
+    delta_time = time;
+    qDebug()<<("set delta_time = "+QString::number(delta_time));
+}
+qint64 getDeltaTime()
+{
+    return delta_time;
+}

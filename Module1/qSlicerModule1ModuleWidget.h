@@ -51,6 +51,8 @@ public slots:
     void finishRecording();
     void reproduceRecording();
     void on_screen_shot();
+    void stopReproduce();
+    void continueReproduce();
 
 
 protected:

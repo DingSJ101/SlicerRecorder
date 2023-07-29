@@ -55,3 +55,9 @@ public:
 DWORD WINAPI keyboaredReproduceThread(LPVOID lpParam);
 DWORD WINAPI mouseReproduceThread(LPVOID lpParam);
 extern myTask* myTask_ptr;
+
+extern qint64 delta_time;
+// old_sys_time - cmd_time = old_delta_time
+// new_sys_time - cmd_time = new_delta_time
+qint64 getDeltaTime();
+void setDeltaTime(qint64 time);

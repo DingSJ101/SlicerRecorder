@@ -91,6 +91,8 @@ void qSlicerModule1ModuleWidget::setup()
   // }
   // //---------------------setStyleSheet---------------------
   new QShortcut(QKeySequence("F11"), this, SLOT(on_screen_shot()));
+  new QShortcut(QKeySequence("F5"), this, SLOT(stopReproduce()));
+  new QShortcut(QKeySequence("F6"), this, SLOT(continueReproduce()));
   // new QShortcut(QKeySequence("Ctrl+Shift+Q"), this, &qSlicerModule1ModuleWidget::on_screen_shot);
   
   echoInfo(QString("[in] qSlicerModuleWidget::setup()")+QString::number(reinterpret_cast<quintptr>(QThread::currentThreadId())));
@@ -125,11 +127,18 @@ void qSlicerModule1ModuleWidget::on_screen_shot()
   QString current_date =current_date_time.toString("yyyy-MM-dd_hh-mm-ss");
   QString fileName = ScreenShotDir+current_date + ".png";
   // 如果ScreenShotDir不存在，则创建
-  QDir dir;
-  if (!dir.exists(ScreenShotDir))    dir.mkpath(ScreenShotDir);
+  // QDir dir;
+  // if (!dir.exists(ScreenShotDir))    dir.mkpath(ScreenShotDir);
   CaptureScreenAndSave(fileName.toStdString().c_str());
   d->textBrowser->append("save screenshot at :"+fileName);
   qDebug()<<"save screenshot at :"<<fileName;
+}
+
+void qSlicerModule1ModuleWidget::stopReproduce(){
+    setDeltaTime(getDeltaTime()-QDateTime::currentMSecsSinceEpoch());
+}
+void qSlicerModule1ModuleWidget::continueReproduce(){
+    setDeltaTime(getDeltaTime()+QDateTime::currentMSecsSinceEpoch());
 }
 
 void qSlicerModule1ModuleWidget::on_pushButton_clicked()
